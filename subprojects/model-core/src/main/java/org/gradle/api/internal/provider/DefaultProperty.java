@@ -29,7 +29,7 @@ public class DefaultProperty<T> extends AbstractProperty<T, ProviderInternal<? e
         super(propertyHost);
         this.type = type;
         this.sanitizer = ValueSanitizers.forType(type);
-        init(defaultValue());
+        init(Providers.notDefined());
     }
 
     @Override
@@ -114,11 +114,6 @@ public class DefaultProperty<T> extends AbstractProperty<T, ProviderInternal<? e
     public Property<T> convention(Provider<? extends T> valueProvider) {
         setConvention(Providers.internal(valueProvider).asSupplier(getValidationDisplayName(), type, sanitizer));
         return this;
-    }
-
-    @Override
-    protected ProviderInternal<? extends T> defaultValue() {
-        return Providers.notDefined();
     }
 
     @Override

@@ -47,7 +47,7 @@ public abstract class AbstractCollectionProperty<T, C extends Collection<T>> ext
         this.collectionType = collectionType;
         this.elementType = elementType;
         valueCollector = new ValidatingValueCollector<>(collectionType, elementType, ValueSanitizers.forType(elementType));
-        init(defaultValue(), noValueSupplier());
+        init(defaultValue, noValueSupplier());
     }
 
     private CollectionSupplier<T, C> emptySupplier() {
@@ -56,11 +56,6 @@ public abstract class AbstractCollectionProperty<T, C extends Collection<T>> ext
 
     private CollectionSupplier<T, C> noValueSupplier() {
         return Cast.uncheckedCast(NO_VALUE);
-    }
-
-    @Override
-    protected CollectionSupplier<T, C> defaultValue() {
-        return defaultValue;
     }
 
     /**
@@ -100,7 +95,7 @@ public abstract class AbstractCollectionProperty<T, C extends Collection<T>> ext
     }
 
     private void addCollector(Collector<T> collector) {
-        useExplicitValue();
+        useExplicitValue(defaultValue);
         setSupplier(getSupplier().plus(collector));
     }
 
@@ -128,7 +123,7 @@ public abstract class AbstractCollectionProperty<T, C extends Collection<T>> ext
      * Sets the value of this property the given list of element providers.
      */
     public void providers(List<ProviderInternal<? extends Iterable<? extends T>>> providers) {
-        CollectionSupplier<T, C> value = defaultValue();
+        CollectionSupplier<T, C> value = defaultValue;
         for (ProviderInternal<? extends Iterable<? extends T>> provider : providers) {
             value = value.plus(new ElementsFromCollectionProvider<>(provider));
         }

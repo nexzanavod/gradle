@@ -53,7 +53,7 @@ public class DefaultMapProperty<K, V> extends AbstractProperty<Map<K, V>, MapSup
         this.valueType = valueType;
         keyCollector = new ValidatingValueCollector<>(Set.class, keyType, ValueSanitizers.forType(keyType));
         entryCollector = new ValidatingMapEntryCollector<>(keyType, valueType, ValueSanitizers.forType(keyType), ValueSanitizers.forType(valueType));
-        init(defaultValue(), noValueSupplier());
+        init(defaultValue, noValueSupplier());
     }
 
     private MapSupplier<K, V> emptySupplier() {
@@ -187,7 +187,7 @@ public class DefaultMapProperty<K, V> extends AbstractProperty<Map<K, V>, MapSup
     }
 
     private void addCollector(MapCollector<K, V> collector) {
-        useExplicitValue();
+        useExplicitValue(defaultValue);
         setSupplier(getSupplier().plus(collector));
     }
 
@@ -236,7 +236,7 @@ public class DefaultMapProperty<K, V> extends AbstractProperty<Map<K, V>, MapSup
     }
 
     public void providers(List<? extends ProviderInternal<? extends Map<? extends K, ? extends V>>> providers) {
-        MapSupplier<K, V> value = defaultValue();
+        MapSupplier<K, V> value = defaultValue;
         for (ProviderInternal<? extends Map<? extends K, ? extends V>> provider : providers) {
             value = value.plus(new MapCollectors.EntriesFromMapProvider<>(provider));
         }
@@ -251,11 +251,6 @@ public class DefaultMapProperty<K, V> extends AbstractProperty<Map<K, V>, MapSup
     @Override
     protected String describeContents() {
         return String.format("Map(%s->%s, %s)", keyType.getSimpleName().toLowerCase(), valueType.getSimpleName(), getSupplier().toString());
-    }
-
-    @Override
-    protected MapSupplier<K, V> defaultValue() {
-        return defaultValue;
     }
 
     @Override
