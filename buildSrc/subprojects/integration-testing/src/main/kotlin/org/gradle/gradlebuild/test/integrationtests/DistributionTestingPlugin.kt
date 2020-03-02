@@ -103,18 +103,23 @@ class DistributionTestingPlugin : Plugin<Project> {
     fun DistributionTest.setSystemPropertiesOfTestJVM(project: Project) {
         // use -PtestVersions=all or -PtestVersions=1.2,1.3…
         val integTestVersionsSysProp = "org.gradle.integtest.versions"
+        val sysPropValue = System.getProperty(integTestVersionsSysProp)
         if (project.hasProperty("testVersions")) {
             systemProperties[integTestVersionsSysProp] = project.property("testVersions")
         } else {
             if (integTestVersionsSysProp !in systemProperties) {
-                if (project.findProperty("testPartialVersions") == true) {
+                if (project.hasProperty("testPartialVersions")) {
                     systemProperties[integTestVersionsSysProp] = "partial"
                 }
-                if (project.findProperty("testAllVersions") == true) {
+                if (project.hasProperty("testAllVersions")) {
                     systemProperties[integTestVersionsSysProp] = "all"
                 }
                 if (integTestVersionsSysProp !in systemProperties) {
-                    systemProperties[integTestVersionsSysProp] = "default"
+                    if (sysPropValue != null) {
+                        systemProperties[integTestVersionsSysProp] = sysPropValue
+                    } else {
+                        systemProperties[integTestVersionsSysProp] = "default"
+                    }
                 }
             }
         }
