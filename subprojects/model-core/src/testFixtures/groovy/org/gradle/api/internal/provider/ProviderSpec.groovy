@@ -35,6 +35,8 @@ abstract class ProviderSpec<T> extends Specification {
 
     abstract T someOtherValue3()
 
+    abstract Class<T> type()
+
     abstract ManagedFactory managedFactory()
 
     boolean isNoValueProviderImmutable() {

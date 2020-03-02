@@ -30,7 +30,9 @@ import java.util.concurrent.Callable
 
 abstract class PropertySpec<T> extends ProviderSpec<T> {
     @Override
-    abstract PropertyInternal<T> providerWithValue(T value)
+    PropertyInternal<T> providerWithValue(T value) {
+        return propertyWithDefaultValue().value(value)
+    }
 
     @Override
     PropertyInternal<T> providerWithNoValue() {
@@ -46,12 +48,6 @@ abstract class PropertySpec<T> extends ProviderSpec<T> {
      * Returns a property with its default value.
      */
     abstract PropertyInternal<T> propertyWithDefaultValue()
-
-    abstract T someValue()
-
-    abstract T someOtherValue()
-
-    abstract Class<T> type()
 
     @Override
     String getDisplayName() {

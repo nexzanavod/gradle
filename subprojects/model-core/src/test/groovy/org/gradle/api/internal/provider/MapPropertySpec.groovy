@@ -41,13 +41,6 @@ class MapPropertySpec extends PropertySpec<Map<String, String>> {
     }
 
     @Override
-    DefaultMapProperty<String, String> providerWithValue(Map<String, String> value) {
-        def p = property()
-        p.set(value)
-        return p
-    }
-
-    @Override
     Class<Map<String, String>> type() {
         return Map
     }
