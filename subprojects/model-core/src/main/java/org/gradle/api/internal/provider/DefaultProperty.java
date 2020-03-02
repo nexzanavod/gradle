@@ -21,22 +21,15 @@ import org.gradle.api.provider.Provider;
 
 import javax.annotation.Nullable;
 
-public class DefaultProperty<T> extends AbstractProperty<T> implements Property<T> {
+public class DefaultProperty<T> extends AbstractProperty<T, ProviderInternal<? extends T>> implements Property<T> {
     private final Class<T> type;
     private final ValueSanitizer<T> sanitizer;
-    private ProviderInternal<? extends T> convention = Providers.notDefined();
-    private ProviderInternal<? extends T> valueSupplier;
 
     public DefaultProperty(PropertyHost propertyHost, Class<T> type) {
         super(propertyHost);
-        applyDefaultValue();
         this.type = type;
         this.sanitizer = ValueSanitizers.forType(type);
-    }
-
-    @Override
-    protected ValueSupplier getSupplier() {
-        return valueSupplier;
+        init(defaultValue());
     }
 
     @Override
@@ -72,13 +65,13 @@ public class DefaultProperty<T> extends AbstractProperty<T> implements Property<
     public void set(T value) {
         if (value == null) {
             if (beforeReset()) {
-                this.valueSupplier = convention;
+                useConvention();
             }
             return;
         }
 
         if (beforeMutate()) {
-            this.valueSupplier = Providers.fixedValue(getValidationDisplayName(), value, type, sanitizer);
+            setSupplier(Providers.fixedValue(getValidationDisplayName(), value, type, sanitizer));
         }
     }
 
@@ -95,7 +88,7 @@ public class DefaultProperty<T> extends AbstractProperty<T> implements Property<
     }
 
     public ProviderInternal<? extends T> getProvider() {
-        return valueSupplier;
+        return getSupplier();
     }
 
     public DefaultProperty<T> provider(Provider<? extends T> provider) {
@@ -112,7 +105,7 @@ public class DefaultProperty<T> extends AbstractProperty<T> implements Property<
             throw new IllegalArgumentException("Cannot set the value of a property using a null provider.");
         }
         ProviderInternal<? extends T> p = Providers.internal(provider);
-        this.valueSupplier = p.asSupplier(getValidationDisplayName(), type, sanitizer);
+        setSupplier(p.asSupplier(getValidationDisplayName(), type, sanitizer));
     }
 
     @Override
@@ -134,37 +127,36 @@ public class DefaultProperty<T> extends AbstractProperty<T> implements Property<
 
     private void applyConvention(ProviderInternal<? extends T> conventionSupplier) {
         if (shouldApplyConvention()) {
-            this.valueSupplier = conventionSupplier;
+            setSupplier(conventionSupplier);
         }
-        this.convention = conventionSupplier;
+        setConvention(conventionSupplier);
     }
 
     @Override
-    protected void applyDefaultValue() {
-        valueSupplier = Providers.notDefined();
+    protected ProviderInternal<? extends T> defaultValue() {
+        return Providers.notDefined();
     }
 
     @Override
-    protected void makeFinal() {
-        valueSupplier = valueSupplier.withFinalValue();
-        convention = Providers.notDefined();
+    protected ProviderInternal<? extends T> finalValue() {
+        return getSupplier().withFinalValue();
     }
 
     @Override
     protected Value<? extends T> calculateOwnValue() {
         beforeRead();
-        return valueSupplier.calculateValue();
+        return getSupplier().calculateValue();
     }
 
     @Override
     public boolean isPresent() {
         beforeRead();
-        return valueSupplier.isPresent();
+        return getSupplier().isPresent();
     }
 
     @Override
     protected String describeContents() {
         // NOTE: Do not realize the value of the Provider in toString().  The debugger will try to call this method and make debugging really frustrating.
-        return String.format("property(%s, %s)", type, valueSupplier);
+        return String.format("property(%s, %s)", type, getSupplier());
     }
 }

@@ -35,21 +35,19 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-public abstract class AbstractCollectionProperty<T, C extends Collection<T>> extends AbstractProperty<C> implements CollectionPropertyInternal<T, C> {
+public abstract class AbstractCollectionProperty<T, C extends Collection<T>> extends AbstractProperty<C, CollectionSupplier<T, C>> implements CollectionPropertyInternal<T, C> {
     private static final CollectionSupplier<Object, Collection<Object>> NO_VALUE = new NoValueSupplier<>(Value.missing());
     private final Class<? extends Collection> collectionType;
     private final Class<T> elementType;
     private final ValueCollector<T> valueCollector;
-    private CollectionSupplier<T, C> convention = noValueSupplier();
     private CollectionSupplier<T, C> defaultValue = emptySupplier();
-    private CollectionSupplier<T, C> value;
 
     AbstractCollectionProperty(PropertyHost host, Class<? extends Collection> collectionType, Class<T> elementType) {
         super(host);
-        applyDefaultValue();
         this.collectionType = collectionType;
         this.elementType = elementType;
         valueCollector = new ValidatingValueCollector<>(collectionType, elementType, ValueSanitizers.forType(elementType));
+        init(defaultValue(), noValueSupplier());
     }
 
     private CollectionSupplier<T, C> emptySupplier() {
@@ -61,8 +59,8 @@ public abstract class AbstractCollectionProperty<T, C extends Collection<T>> ext
     }
 
     @Override
-    protected ValueSupplier getSupplier() {
-        return value;
+    protected CollectionSupplier<T, C> defaultValue() {
+        return defaultValue;
     }
 
     /**
@@ -117,7 +115,7 @@ public abstract class AbstractCollectionProperty<T, C extends Collection<T>> ext
     }
 
     private void addCollector(Collector<T> collector) {
-        value = value.plus(collector);
+        setSupplier(getSupplier().plus(collector));
     }
 
     @Nullable
@@ -136,7 +134,7 @@ public abstract class AbstractCollectionProperty<T, C extends Collection<T>> ext
      */
     public List<ProviderInternal<? extends Iterable<? extends T>>> getProviders() {
         List<ProviderInternal<? extends Iterable<? extends T>>> sources = new ArrayList<>();
-        value.visit(sources);
+        getSupplier().visit(sources);
         return sources;
     }
 
@@ -147,16 +145,17 @@ public abstract class AbstractCollectionProperty<T, C extends Collection<T>> ext
         if (!beforeMutate()) {
             return;
         }
-        value = defaultValue;
+        CollectionSupplier<T, C> value = defaultValue();
         for (ProviderInternal<? extends Iterable<? extends T>> provider : providers) {
             value = value.plus(new ElementsFromCollectionProvider<>(provider));
         }
+        setSupplier(value);
     }
 
     @Override
     public boolean isPresent() {
         beforeRead();
-        return value.isPresent();
+        return getSupplier().isPresent();
     }
 
     @Override
@@ -166,7 +165,7 @@ public abstract class AbstractCollectionProperty<T, C extends Collection<T>> ext
     }
 
     private Value<? extends C> doCalculateOwnValue() {
-        return value.calculateValue();
+        return getSupplier().calculateValue();
     }
 
     @Override
@@ -185,13 +184,13 @@ public abstract class AbstractCollectionProperty<T, C extends Collection<T>> ext
     public void set(@Nullable final Iterable<? extends T> elements) {
         if (elements == null) {
             if (beforeReset()) {
-                set(convention);
+                useConvention();
                 defaultValue = noValueSupplier();
             }
             return;
         }
         if (beforeMutate()) {
-            set(new CollectingSupplier(new ElementsFromCollection<>(elements)));
+            setSupplier(new CollectingSupplier(new ElementsFromCollection<>(elements)));
         }
     }
 
@@ -213,7 +212,7 @@ public abstract class AbstractCollectionProperty<T, C extends Collection<T>> ext
                 throw new IllegalArgumentException(String.format("Cannot set the value of a property of type %s with element type %s using a provider with element type %s.", collectionType.getName(), elementType.getName(), collectionProp.getElementType().getName()));
             }
         }
-        set(new CollectingSupplier(new ElementsFromCollectionProvider<>(p)));
+        setSupplier(new CollectingSupplier(new ElementsFromCollectionProvider<>(p)));
     }
 
     @Override
@@ -233,30 +232,20 @@ public abstract class AbstractCollectionProperty<T, C extends Collection<T>> ext
         if (!beforeMutate()) {
             return this;
         }
-        set(emptySupplier());
+        setSupplier(emptySupplier());
         return this;
     }
 
     @Override
-    protected void applyDefaultValue() {
-        value = defaultValue;
-    }
-
-    @Override
-    protected void makeFinal() {
+    protected CollectionSupplier<T, C> finalValue() {
         Value<? extends C> result = doCalculateOwnValue();
         if (!result.isMissing()) {
-            set(new FixedSupplier<>(result.get()));
+            return new FixedSupplier<>(result.get());
         } else if (result.getPathToOrigin().isEmpty()) {
-            set(noValueSupplier());
+            return noValueSupplier();
         } else {
-            set(new NoValueSupplier<>(result));
+            return new NoValueSupplier<>(result);
         }
-        convention = noValueSupplier();
-    }
-
-    private void set(CollectionSupplier<T, C> supplier) {
-        value = supplier;
     }
 
     @Override
@@ -277,25 +266,17 @@ public abstract class AbstractCollectionProperty<T, C extends Collection<T>> ext
 
     private void convention(CollectionSupplier<T, C> collector) {
         if (shouldApplyConvention()) {
-            this.value = collector;
+            setSupplier(collector);
         }
-        convention = collector;
+        setConvention(collector);
     }
 
     @Override
     protected String describeContents() {
-        return String.format("%s(%s, %s)", collectionType.getSimpleName().toLowerCase(), elementType, value.toString());
+        return String.format("%s(%s, %s)", collectionType.getSimpleName().toLowerCase(), elementType, getSupplier().toString());
     }
 
-    private interface CollectionSupplier<T, C extends Collection<? extends T>> extends ValueSupplier {
-        Value<? extends C> calculateValue();
-
-        CollectionSupplier<T, C> plus(Collector<T> collector);
-
-        void visit(List<ProviderInternal<? extends Iterable<? extends T>>> sources);
-    }
-
-    private static class NoValueSupplier<T, C extends Collection<? extends T>> implements CollectionSupplier<T, C> {
+    static class NoValueSupplier<T, C extends Collection<? extends T>> implements CollectionSupplier<T, C> {
         private final Value<? extends C> value;
 
         public NoValueSupplier(Value<? extends C> value) {

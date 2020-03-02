@@ -25,7 +25,7 @@ import org.gradle.internal.logging.text.TreeFormatter;
 
 import javax.annotation.Nullable;
 
-public abstract class AbstractProperty<T> extends AbstractMinimalProvider<T> implements PropertyInternal<T> {
+public abstract class AbstractProperty<T, S extends ValueSupplier> extends AbstractMinimalProvider<T> implements PropertyInternal<T> {
     private enum State {
         ImplicitValue, ExplicitValue, Final
     }
@@ -40,9 +40,21 @@ public abstract class AbstractProperty<T> extends AbstractMinimalProvider<T> imp
     private boolean disallowUnsafeRead;
     private Task producer;
     private DisplayName displayName;
+    private S value;
+    private S convention;
 
     public AbstractProperty(PropertyHost host) {
         this.host = host;
+    }
+
+    protected void init(S initialValue, S convention) {
+        this.value = initialValue;
+        this.convention = convention;
+    }
+
+    protected void init(S initialValue) {
+        this.value = initialValue;
+        this.convention = initialValue;
     }
 
     @Override
@@ -84,7 +96,9 @@ public abstract class AbstractProperty<T> extends AbstractMinimalProvider<T> imp
         this.producer = task;
     }
 
-    protected abstract ValueSupplier getSupplier();
+    protected S getSupplier() {
+        return value;
+    }
 
     /**
      * Returns a diagnostic string describing the current source of value of this property. Should not realize the value.
@@ -127,7 +141,8 @@ public abstract class AbstractProperty<T> extends AbstractMinimalProvider<T> imp
     @Override
     public void finalizeValue() {
         if (state != State.Final) {
-            makeFinal();
+            value = finalValue();
+            convention = null;
         }
         state = State.Final;
         disallowChanges = true;
@@ -155,9 +170,21 @@ public abstract class AbstractProperty<T> extends AbstractMinimalProvider<T> imp
         finalizeOnNextGet = true;
     }
 
-    protected abstract void applyDefaultValue();
+    protected abstract S defaultValue();
 
-    protected abstract void makeFinal();
+    protected abstract S finalValue();
+
+    protected void setSupplier(S supplier) {
+        this.value = supplier;
+    }
+
+    protected void setConvention(S convention) {
+        this.convention = convention;
+    }
+
+    protected void useConvention() {
+        this.value = convention;
+    }
 
     /**
      * Call prior to reading the value of this property.
@@ -179,7 +206,8 @@ public abstract class AbstractProperty<T> extends AbstractMinimalProvider<T> imp
             }
         }
         if (finalizeOnNextGet) {
-            makeFinal();
+            value = finalValue();
+            convention = null;
             state = State.Final;
         }
     }
@@ -190,7 +218,7 @@ public abstract class AbstractProperty<T> extends AbstractMinimalProvider<T> imp
     protected boolean beforeMutate() {
         if (canMutate()) {
             if (state == State.ImplicitValue) {
-                applyDefaultValue();
+                value = defaultValue();
                 state = State.ExplicitValue;
             }
             return true;
@@ -226,5 +254,17 @@ public abstract class AbstractProperty<T> extends AbstractMinimalProvider<T> imp
             throw new IllegalStateException(String.format("The value for %s cannot be changed any further.", getDisplayName().getDisplayName()));
         }
         return true;
+    }
+
+    private static abstract class Store {
+
+    }
+
+    private static class NonFinalizedValue extends Store {
+
+    }
+
+    private static class FinalizedValue extends Store {
+
     }
 }
