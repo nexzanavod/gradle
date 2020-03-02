@@ -17,7 +17,6 @@
 package org.gradle.api.internal.file
 
 import org.gradle.api.file.FileSystemLocation
-import org.gradle.api.internal.provider.PropertyHost
 import org.gradle.api.internal.provider.PropertySpec
 import org.gradle.api.internal.provider.Providers
 import org.gradle.test.fixtures.file.TestNameTestDirectoryProvider
