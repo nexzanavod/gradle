@@ -76,45 +76,31 @@ public abstract class AbstractCollectionProperty<T, C extends Collection<T>> ext
     @Override
     public void add(final T element) {
         Preconditions.checkNotNull(element, String.format("Cannot add a null element to a property of type %s.", collectionType.getSimpleName()));
-        if (!beforeMutate()) {
-            return;
-        }
         addCollector(new SingleElement<>(element));
     }
 
     @Override
     public void add(final Provider<? extends T> providerOfElement) {
-        if (!beforeMutate()) {
-            return;
-        }
         addCollector(new ElementFromProvider<>(Providers.internal(providerOfElement)));
     }
 
     @Override
     public void addAll(T... elements) {
-        if (!beforeMutate()) {
-            return;
-        }
         addCollector(new ElementsFromArray<>(elements));
     }
 
     @Override
     public void addAll(Iterable<? extends T> elements) {
-        if (!beforeMutate()) {
-            return;
-        }
         addCollector(new ElementsFromCollection<>(elements));
     }
 
     @Override
     public void addAll(Provider<? extends Iterable<? extends T>> provider) {
-        if (!beforeMutate()) {
-            return;
-        }
         addCollector(new ElementsFromCollectionProvider<>(Providers.internal(provider)));
     }
 
     private void addCollector(Collector<T> collector) {
+        useExplicitValue();
         setSupplier(getSupplier().plus(collector));
     }
 
@@ -142,9 +128,6 @@ public abstract class AbstractCollectionProperty<T, C extends Collection<T>> ext
      * Sets the value of this property the given list of element providers.
      */
     public void providers(List<ProviderInternal<? extends Iterable<? extends T>>> providers) {
-        if (!beforeMutate()) {
-            return;
-        }
         CollectionSupplier<T, C> value = defaultValue();
         for (ProviderInternal<? extends Iterable<? extends T>> provider : providers) {
             value = value.plus(new ElementsFromCollectionProvider<>(provider));
@@ -179,18 +162,13 @@ public abstract class AbstractCollectionProperty<T, C extends Collection<T>> ext
         if (elements == null) {
             discardValue();
             defaultValue = noValueSupplier();
-            return;
-        }
-        if (beforeMutate()) {
+        } else {
             setSupplier(new CollectingSupplier(new ElementsFromCollection<>(elements)));
         }
     }
 
     @Override
     public void set(final Provider<? extends Iterable<? extends T>> provider) {
-        if (!beforeMutate()) {
-            return;
-        }
         if (provider == null) {
             throw new IllegalArgumentException("Cannot set the value of a property using a null provider.");
         }
@@ -221,9 +199,6 @@ public abstract class AbstractCollectionProperty<T, C extends Collection<T>> ext
 
     @Override
     public HasMultipleValues<T> empty() {
-        if (!beforeMutate()) {
-            return this;
-        }
         setSupplier(emptySupplier());
         return this;
     }

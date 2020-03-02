@@ -1423,7 +1423,7 @@ The value of this property is derived from:
         e.message == 'The value for this property is final and cannot be changed any further.'
 
         when:
-        property.setFromAnyValue(Stub(ProviderInternal))
+        property.setFromAnyValue(brokenSupplier())
 
         then:
         def e2 = thrown(IllegalStateException)
@@ -1452,7 +1452,7 @@ The value of this property is derived from:
         e.message == 'The value for this property cannot be changed any further.'
 
         when:
-        property.setFromAnyValue(Stub(ProviderInternal))
+        property.setFromAnyValue(brokenSupplier())
 
         then:
         def e2 = thrown(IllegalStateException)
@@ -1482,7 +1482,7 @@ The value of this property is derived from:
         e.message == 'The value for this property is final and cannot be changed any further.'
 
         when:
-        property.setFromAnyValue(Stub(ProviderInternal))
+        property.setFromAnyValue(brokenSupplier())
 
         then:
         def e2 = thrown(IllegalStateException)
@@ -1511,7 +1511,7 @@ The value of this property is derived from:
         e.message == 'The value for this property cannot be changed any further.'
 
         when:
-        property.setFromAnyValue(Stub(ProviderInternal))
+        property.setFromAnyValue(brokenSupplier())
 
         then:
         def e2 = thrown(IllegalStateException)

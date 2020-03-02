@@ -181,7 +181,9 @@ public abstract class AbstractProperty<T, S extends ValueSupplier> extends Abstr
     protected abstract S finalValue();
 
     protected void setSupplier(S supplier) {
+        assertCanMutate();
         this.value = supplier;
+        state = State.ExplicitValue;
     }
 
     protected void setConvention(S convention) {
@@ -219,19 +221,18 @@ public abstract class AbstractProperty<T, S extends ValueSupplier> extends Abstr
     }
 
     /**
-     * Call prior to mutating the value of this property.
+     * Call prior to mutating the value of this property, use the default value if no explicit value has been set. Ignores the convention.
      */
-    protected boolean beforeMutate() {
+    protected void useExplicitValue() {
         assertCanMutate();
         if (state == State.ImplicitValue) {
             value = defaultValue();
             state = State.ExplicitValue;
         }
-        return true;
     }
 
     /**
-     * Discards the value of this property
+     * Discards the value of this property, and uses its convention.
      */
     protected void discardValue() {
         assertCanMutate();
@@ -239,7 +240,7 @@ public abstract class AbstractProperty<T, S extends ValueSupplier> extends Abstr
         value = convention;
     }
 
-    private void assertCanMutate() {
+    protected void assertCanMutate() {
         if (state == State.Final) {
             throw new IllegalStateException(String.format("The value for %s is final and cannot be changed any further.", getDisplayName().getDisplayName()));
         } else if (disallowChanges) {

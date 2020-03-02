@@ -110,9 +110,7 @@ public class DefaultMapProperty<K, V> extends AbstractProperty<Map<K, V>, MapSup
     @Override
     @SuppressWarnings("unchecked")
     public MapProperty<K, V> empty() {
-        if (beforeMutate()) {
-            setSupplier(emptySupplier());
-        }
+        setSupplier(emptySupplier());
         return this;
     }
 
@@ -135,18 +133,13 @@ public class DefaultMapProperty<K, V> extends AbstractProperty<Map<K, V>, MapSup
         if (entries == null) {
             discardValue();
             defaultValue = noValueSupplier();
-            return;
-        }
-        if (beforeMutate()) {
+        } else {
             setSupplier(new CollectingSupplier(new MapCollectors.EntriesFromMap<>(entries)));
         }
     }
 
     @Override
     public void set(Provider<? extends Map<? extends K, ? extends V>> provider) {
-        if (!beforeMutate()) {
-            return;
-        }
         ProviderInternal<? extends Map<? extends K, ? extends V>> p = checkMapProvider(provider);
         setSupplier(new CollectingSupplier(new MapCollectors.EntriesFromMapProvider<>(p)));
     }
@@ -167,9 +160,6 @@ public class DefaultMapProperty<K, V> extends AbstractProperty<Map<K, V>, MapSup
     public void put(K key, V value) {
         Preconditions.checkNotNull(key, NULL_KEY_FORBIDDEN_MESSAGE);
         Preconditions.checkNotNull(value, NULL_VALUE_FORBIDDEN_MESSAGE);
-        if (!beforeMutate()) {
-            return;
-        }
         addCollector(new MapCollectors.SingleEntry<>(key, value));
     }
 
@@ -177,9 +167,6 @@ public class DefaultMapProperty<K, V> extends AbstractProperty<Map<K, V>, MapSup
     public void put(K key, Provider<? extends V> providerOfValue) {
         Preconditions.checkNotNull(key, NULL_KEY_FORBIDDEN_MESSAGE);
         Preconditions.checkNotNull(providerOfValue, NULL_VALUE_FORBIDDEN_MESSAGE);
-        if (!beforeMutate()) {
-            return;
-        }
         ProviderInternal<? extends V> p = Providers.internal(providerOfValue);
         if (p.getType() != null && !valueType.isAssignableFrom(p.getType())) {
             throw new IllegalArgumentException(String.format("Cannot add an entry to a property of type %s with values of type %s using a provider of type %s.",
@@ -190,22 +177,17 @@ public class DefaultMapProperty<K, V> extends AbstractProperty<Map<K, V>, MapSup
 
     @Override
     public void putAll(Map<? extends K, ? extends V> entries) {
-        if (!beforeMutate()) {
-            return;
-        }
         addCollector(new MapCollectors.EntriesFromMap<>(entries));
     }
 
     @Override
     public void putAll(Provider<? extends Map<? extends K, ? extends V>> provider) {
-        if (!beforeMutate()) {
-            return;
-        }
         ProviderInternal<? extends Map<? extends K, ? extends V>> p = checkMapProvider(provider);
         addCollector(new MapCollectors.EntriesFromMapProvider<>(p));
     }
 
     private void addCollector(MapCollector<K, V> collector) {
+        useExplicitValue();
         setSupplier(getSupplier().plus(collector));
     }
 
@@ -254,9 +236,6 @@ public class DefaultMapProperty<K, V> extends AbstractProperty<Map<K, V>, MapSup
     }
 
     public void providers(List<? extends ProviderInternal<? extends Map<? extends K, ? extends V>>> providers) {
-        if (!beforeMutate()) {
-            return;
-        }
         MapSupplier<K, V> value = defaultValue();
         for (ProviderInternal<? extends Map<? extends K, ? extends V>> provider : providers) {
             value = value.plus(new MapCollectors.EntriesFromMapProvider<>(provider));
