@@ -17,6 +17,7 @@
 package org.gradle.api.internal.file
 
 import org.gradle.api.file.FileSystemLocation
+import org.gradle.api.internal.provider.PropertyHost
 import org.gradle.api.internal.provider.PropertySpec
 import org.gradle.api.internal.provider.Providers
 import org.gradle.test.fixtures.file.TestNameTestDirectoryProvider
@@ -27,7 +28,7 @@ abstract class FileSystemPropertySpec<T extends FileSystemLocation> extends Prop
     TestNameTestDirectoryProvider tmpDir = new TestNameTestDirectoryProvider()
     def resolver = TestFiles.resolver(tmpDir.testDirectory)
     def fileCollectionFactory = TestFiles.fileCollectionFactory(tmpDir.testDirectory)
-    def factory = new DefaultFilePropertyFactory(resolver, fileCollectionFactory)
+    def factory = new DefaultFilePropertyFactory(host, resolver, fileCollectionFactory)
     def baseDir = factory.newDirectoryProperty().fileValue(tmpDir.testDirectory)
 
     def "can set value using absolute file"() {
