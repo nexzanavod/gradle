@@ -58,6 +58,12 @@ public abstract class AbstractProperty<T, S extends ValueSupplier> extends Abstr
     }
 
     @Override
+    public boolean isPresent() {
+        beforeRead();
+        return getSupplier().isPresent();
+    }
+
+    @Override
     public void attachDisplayName(DisplayName displayName) {
         this.displayName = displayName;
     }
@@ -179,11 +185,11 @@ public abstract class AbstractProperty<T, S extends ValueSupplier> extends Abstr
     }
 
     protected void setConvention(S convention) {
+        assertCanMutate();
+        if (state == State.ImplicitValue) {
+            this.value = convention;
+        }
         this.convention = convention;
-    }
-
-    protected void useConvention() {
-        this.value = convention;
     }
 
     /**
@@ -216,44 +222,29 @@ public abstract class AbstractProperty<T, S extends ValueSupplier> extends Abstr
      * Call prior to mutating the value of this property.
      */
     protected boolean beforeMutate() {
-        if (canMutate()) {
-            if (state == State.ImplicitValue) {
-                value = defaultValue();
-                state = State.ExplicitValue;
-            }
-            return true;
+        assertCanMutate();
+        if (state == State.ImplicitValue) {
+            value = defaultValue();
+            state = State.ExplicitValue;
         }
-        return false;
+        return true;
     }
 
     /**
-     * Call prior to discarding the value of this property.
+     * Discards the value of this property
      */
-    protected boolean beforeReset() {
-        if (canMutate()) {
-            state = State.ImplicitValue;
-            return true;
-        }
-        return false;
+    protected void discardValue() {
+        assertCanMutate();
+        state = State.ImplicitValue;
+        value = convention;
     }
 
-    /**
-     * Call prior to applying a convention to this property.
-     */
-    protected boolean shouldApplyConvention() {
-        if (canMutate()) {
-            return state == State.ImplicitValue;
-        }
-        return false;
-    }
-
-    private boolean canMutate() {
+    private void assertCanMutate() {
         if (state == State.Final) {
             throw new IllegalStateException(String.format("The value for %s is final and cannot be changed any further.", getDisplayName().getDisplayName()));
         } else if (disallowChanges) {
             throw new IllegalStateException(String.format("The value for %s cannot be changed any further.", getDisplayName().getDisplayName()));
         }
-        return true;
     }
 
     private static abstract class Store {

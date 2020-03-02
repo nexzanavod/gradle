@@ -92,12 +92,6 @@ public class DefaultMapProperty<K, V> extends AbstractProperty<Map<K, V>, MapSup
     }
 
     @Override
-    public boolean isPresent() {
-        beforeRead();
-        return getSupplier().isPresent();
-    }
-
-    @Override
     protected Value<? extends Map<K, V>> calculateOwnValue() {
         beforeRead();
         return doCalculateOwnValue();
@@ -139,10 +133,8 @@ public class DefaultMapProperty<K, V> extends AbstractProperty<Map<K, V>, MapSup
     @SuppressWarnings("unchecked")
     public void set(@Nullable Map<? extends K, ? extends V> entries) {
         if (entries == null) {
-            if (beforeReset()) {
-                useConvention();
-                defaultValue = noValueSupplier();
-            }
+            discardValue();
+            defaultValue = noValueSupplier();
             return;
         }
         if (beforeMutate()) {
@@ -242,24 +234,17 @@ public class DefaultMapProperty<K, V> extends AbstractProperty<Map<K, V>, MapSup
     @Override
     public MapProperty<K, V> convention(@Nullable Map<? extends K, ? extends V> value) {
         if (value == null) {
-            convention(noValueSupplier());
+            setConvention(noValueSupplier());
         } else {
-            convention(new CollectingSupplier(new MapCollectors.EntriesFromMap<>(value)));
+            setConvention(new CollectingSupplier(new MapCollectors.EntriesFromMap<>(value)));
         }
         return this;
     }
 
     @Override
     public MapProperty<K, V> convention(Provider<? extends Map<? extends K, ? extends V>> valueProvider) {
-        convention(new CollectingSupplier(new MapCollectors.EntriesFromMapProvider<>(Providers.internal(valueProvider))));
+        setConvention(new CollectingSupplier(new MapCollectors.EntriesFromMapProvider<>(Providers.internal(valueProvider))));
         return this;
-    }
-
-    private void convention(MapSupplier<K, V> supplier) {
-        if (shouldApplyConvention()) {
-            setSupplier(supplier);
-        }
-        setConvention(supplier);
     }
 
     public List<? extends ProviderInternal<? extends Map<? extends K, ? extends V>>> getProviders() {

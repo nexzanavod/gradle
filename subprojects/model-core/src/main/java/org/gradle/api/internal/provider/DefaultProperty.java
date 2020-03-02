@@ -64,9 +64,7 @@ public class DefaultProperty<T> extends AbstractProperty<T, ProviderInternal<? e
     @Override
     public void set(T value) {
         if (value == null) {
-            if (beforeReset()) {
-                useConvention();
-            }
+            discardValue();
             return;
         }
 
@@ -109,27 +107,19 @@ public class DefaultProperty<T> extends AbstractProperty<T, ProviderInternal<? e
     }
 
     @Override
-    public Property<T> convention(T value) {
+    public Property<T> convention(@Nullable T value) {
         if (value == null) {
-            applyConvention(Providers.notDefined());
+            setConvention(Providers.notDefined());
         } else {
-            applyConvention(Providers.fixedValue(getValidationDisplayName(), value, type, sanitizer));
+            setConvention(Providers.fixedValue(getValidationDisplayName(), value, type, sanitizer));
         }
         return this;
     }
 
     @Override
     public Property<T> convention(Provider<? extends T> valueProvider) {
-        ProviderInternal<? extends T> conventionSupplier = Providers.internal(valueProvider).asSupplier(getValidationDisplayName(), type, sanitizer);
-        applyConvention(conventionSupplier);
+        setConvention(Providers.internal(valueProvider).asSupplier(getValidationDisplayName(), type, sanitizer));
         return this;
-    }
-
-    private void applyConvention(ProviderInternal<? extends T> conventionSupplier) {
-        if (shouldApplyConvention()) {
-            setSupplier(conventionSupplier);
-        }
-        setConvention(conventionSupplier);
     }
 
     @Override
@@ -146,12 +136,6 @@ public class DefaultProperty<T> extends AbstractProperty<T, ProviderInternal<? e
     protected Value<? extends T> calculateOwnValue() {
         beforeRead();
         return getSupplier().calculateValue();
-    }
-
-    @Override
-    public boolean isPresent() {
-        beforeRead();
-        return getSupplier().isPresent();
     }
 
     @Override

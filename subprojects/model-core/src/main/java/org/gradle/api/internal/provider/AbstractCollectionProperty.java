@@ -153,12 +153,6 @@ public abstract class AbstractCollectionProperty<T, C extends Collection<T>> ext
     }
 
     @Override
-    public boolean isPresent() {
-        beforeRead();
-        return getSupplier().isPresent();
-    }
-
-    @Override
     protected Value<? extends C> calculateOwnValue() {
         beforeRead();
         return doCalculateOwnValue();
@@ -183,10 +177,8 @@ public abstract class AbstractCollectionProperty<T, C extends Collection<T>> ext
     @Override
     public void set(@Nullable final Iterable<? extends T> elements) {
         if (elements == null) {
-            if (beforeReset()) {
-                useConvention();
-                defaultValue = noValueSupplier();
-            }
+            discardValue();
+            defaultValue = noValueSupplier();
             return;
         }
         if (beforeMutate()) {
@@ -251,24 +243,17 @@ public abstract class AbstractCollectionProperty<T, C extends Collection<T>> ext
     @Override
     public HasMultipleValues<T> convention(@Nullable Iterable<? extends T> elements) {
         if (elements == null) {
-            convention(noValueSupplier());
+            setConvention(noValueSupplier());
         } else {
-            convention(new CollectingSupplier(new ElementsFromCollection<>(elements)));
+            setConvention(new CollectingSupplier(new ElementsFromCollection<>(elements)));
         }
         return this;
     }
 
     @Override
     public HasMultipleValues<T> convention(Provider<? extends Iterable<? extends T>> provider) {
-        convention(new CollectingSupplier(new ElementsFromCollectionProvider<>(Providers.internal(provider))));
+        setConvention(new CollectingSupplier(new ElementsFromCollectionProvider<>(Providers.internal(provider))));
         return this;
-    }
-
-    private void convention(CollectionSupplier<T, C> collector) {
-        if (shouldApplyConvention()) {
-            setSupplier(collector);
-        }
-        setConvention(collector);
     }
 
     @Override
